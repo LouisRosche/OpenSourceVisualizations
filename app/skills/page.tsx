@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import SkillMatrixHeatmap from '@/components/SkillMatrixHeatmap';
+import ExportButtons from '@/components/ExportButtons';
 import { generateSkillMatrixData } from '@/lib/sampleData';
 
 export default function SkillsPage() {
   const [data] = useState(() => generateSkillMatrixData(15, 10));
   const [showConfidence, setShowConfidence] = useState(false);
   const [colorScheme, setColorScheme] = useState<'sequential' | 'diverging'>('sequential');
+  const vizRef = useRef<HTMLDivElement>(null);
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -49,7 +51,16 @@ export default function SkillsPage() {
           </div>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-6">
+        <div className="mb-6">
+          <ExportButtons
+            visualizationRef={vizRef}
+            data={data}
+            visualizationType="skills"
+            filename="skill-matrix"
+          />
+        </div>
+
+        <div ref={vizRef} className="bg-card border border-border rounded-lg p-6">
           <SkillMatrixHeatmap
             data={data}
             colorScheme={colorScheme}

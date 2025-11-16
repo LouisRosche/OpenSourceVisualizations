@@ -73,7 +73,10 @@ Identify and prioritize competency development opportunities.
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
 - **Visualizations**: D3.js
-- **Database**: Prisma ORM with SQLite (schema defined, migrations not yet run)
+- **Database**: Prisma ORM with PostgreSQL
+- **Deployment**: Vercel-ready (see DEPLOYMENT.md)
+- **Data Import**: CSV parsing with validation (PapaParse)
+- **Export**: PNG, SVG, CSV (html-to-image, file-saver)
 
 ## Getting Started
 
@@ -104,6 +107,31 @@ Open [http://localhost:3000](http://localhost:3000) to view the application.
 npm run build
 npm run start
 ```
+
+## Deployment
+
+This application is production-ready and optimized for Vercel deployment.
+
+**Quick Deploy:**
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/your-username/open-source-visualizations)
+
+**For detailed deployment instructions including:**
+- Database setup (Vercel Postgres, Supabase, Neon)
+- Environment variable configuration
+- Domain setup
+- Monitoring and scaling
+
+**See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete guide.**
+
+### Key Features for Production
+
+- ✅ CSV data import with validation
+- ✅ Export to PNG, SVG, CSV
+- ✅ Embed code generation
+- ✅ PostgreSQL database support
+- ✅ Serverless-ready architecture
+- ✅ Type-safe APIs with Prisma
 
 ## Project Structure
 
