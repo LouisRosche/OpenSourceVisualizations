@@ -1,6 +1,21 @@
 /**
  * Statistical calculation utilities
- * Provides rigorous statistical functions for data analysis
+ * Provides statistical functions for data analysis
+ *
+ * IMPORTANT NOTES:
+ * - Quartile calculation uses Method 2 (inclusive median, exclusive quartiles)
+ * - Confidence intervals assume normal distribution or n >= 30
+ * - No automatic handling of missing data (NaN, null, undefined)
+ * - Outlier detection uses standard 1.5*IQR rule
+ * - Linear regression assumes linear relationship, homoscedasticity, normality of residuals
+ * - These are basic implementations - for production use, consider validated libraries
+ *
+ * LIMITATIONS:
+ * - No hypothesis testing (t-tests, ANOVA, chi-square, etc.)
+ * - No non-parametric alternatives
+ * - No multiple comparison corrections
+ * - No time series analysis methods
+ * - No bootstrapping or resampling methods
  */
 
 import { StatisticalSummary } from './types';
@@ -101,13 +116,25 @@ export function iqr(values: number[]): number {
 
 /**
  * Calculate 95% confidence interval for the mean
+ *
+ * ASSUMPTIONS:
+ * - Data is normally distributed OR sample size >= 30 (Central Limit Theorem)
+ * - Samples are independent
+ * - Uses z-score (1.96) appropriate for large samples
+ *
+ * WARNING: For n < 30, should use t-distribution instead of z-distribution
+ * WARNING: Results unreliable for highly skewed distributions with small n
  */
 export function confidenceInterval95(values: number[]): [number, number] {
   if (values.length === 0) return [0, 0];
 
+  if (values.length < 30) {
+    console.warn(`confidenceInterval95: Sample size (${values.length}) < 30. Results may be unreliable. Consider using t-distribution.`);
+  }
+
   const avg = mean(values);
   const stdErr = standardDeviation(values) / Math.sqrt(values.length);
-  const margin = 1.96 * stdErr; // 1.96 for 95% CI
+  const margin = 1.96 * stdErr; // 1.96 for 95% CI (assumes normal distribution)
 
   return [avg - margin, avg + margin];
 }
@@ -188,10 +215,28 @@ export function percentileRank(value: number, values: number[]): number {
 }
 
 /**
- * Calculate correlation coefficient between two arrays
+ * Calculate Pearson correlation coefficient between two arrays
+ *
+ * ASSUMPTIONS:
+ * - Linear relationship between variables
+ * - Both variables are continuous
+ * - Observations are independent
+ *
+ * WARNING: Does not detect non-linear relationships
+ * WARNING: Sensitive to outliers
+ * WARNING: No significance testing performed
+ *
+ * Returns: Correlation coefficient (-1 to 1)
+ *   -1 = perfect negative correlation
+ *    0 = no linear correlation
+ *   +1 = perfect positive correlation
  */
 export function correlation(x: number[], y: number[]): number {
   if (x.length !== y.length || x.length === 0) return 0;
+
+  if (x.length < 10) {
+    console.warn(`correlation: Sample size (${x.length}) < 10. Results may be unreliable.`);
+  }
 
   const xMean = mean(x);
   const yMean = mean(y);
@@ -213,11 +258,32 @@ export function correlation(x: number[], y: number[]): number {
 }
 
 /**
- * Perform a simple linear regression
+ * Perform simple linear regression (Ordinary Least Squares)
+ *
+ * ASSUMPTIONS (NOT CHECKED):
+ * 1. Linear relationship between x and y
+ * 2. Independence of observations
+ * 3. Homoscedasticity (constant variance of residuals)
+ * 4. Normality of residuals
+ * 5. No multicollinearity (for multiple regression)
+ *
+ * WARNING: Does not check assumptions
+ * WARNING: Does not provide standard errors, p-values, or confidence intervals
+ * WARNING: Does not detect influential points or outliers
+ * WARNING: Does not validate model fit
+ *
+ * Returns: { slope, intercept, r2 }
+ *   slope: Rate of change in y per unit change in x
+ *   intercept: Value of y when x = 0
+ *   r2: Proportion of variance explained (0-1, higher is better)
  */
 export function linearRegression(x: number[], y: number[]): { slope: number; intercept: number; r2: number } {
   if (x.length !== y.length || x.length === 0) {
     return { slope: 0, intercept: 0, r2: 0 };
+  }
+
+  if (x.length < 10) {
+    console.warn(`linearRegression: Sample size (${x.length}) < 10. Results may be unreliable.`);
   }
 
   const n = x.length;

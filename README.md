@@ -13,10 +13,9 @@ This platform provides data-driven insights for:
 ## Core Principles
 
 - **Technical Precision**: No fluffy metaphors, just rigorous analytics
-- **Statistical Rigor**: Confidence intervals, significance testing, proper statistical methods
-- **Professional Quality**: Publication-ready exports and presentations
-- **Accessibility**: WCAG AA compliant, keyboard navigable
-- **Performance**: Handle 10K+ data points smoothly
+- **Statistical Rigor**: Basic statistical methods with documented assumptions and limitations
+- **Professional Quality**: Clean, functional visualizations (export features pending)
+- **Honest Limitations**: MVP state - see Known Limitations section below
 
 ## Key Features
 
@@ -73,10 +72,8 @@ Identify and prioritize competency development opportunities.
 - **Framework**: Next.js 14 (App Router)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS
-- **Visualizations**: D3.js, Recharts
-- **Database**: Prisma ORM with SQLite (easily migrates to PostgreSQL)
-- **State Management**: Zustand
-- **Animations**: Framer Motion
+- **Visualizations**: D3.js
+- **Database**: Prisma ORM with SQLite (schema defined, migrations not yet run)
 
 ## Getting Started
 
@@ -147,6 +144,17 @@ npm run start
 
 See `prisma/schema.prisma` for complete data model.
 
+### Data Validation Limitations (MVP)
+
+**Current MVP does not include:**
+- Runtime data validation (no Zod or similar)
+- Score range constraints (could accept values < 0 or > 100)
+- Database constraints beyond basic types
+- Input sanitization for user-provided data
+- Error boundaries for visualization failures
+
+**All current data is generated via sample data generators** - no real data import yet.
+
 ## Statistical Methods
 
 ### Implemented Functions
@@ -161,6 +169,24 @@ See `prisma/schema.prisma` for complete data model.
 
 All statistical functions are available in `lib/stats.ts`.
 
+### Important Statistical Limitations
+
+**See `lib/stats.ts` file header for complete documentation of assumptions and limitations.**
+
+Key limitations:
+- Confidence intervals assume normal distribution or n ≥ 30 (Central Limit Theorem)
+- Linear regression does NOT check assumptions (linearity, homoscedasticity, normality of residuals)
+- No hypothesis testing (p-values, t-tests, ANOVA, etc.)
+- No non-parametric alternatives for small or skewed datasets
+- No handling of missing data or outlier treatment options
+- Correlation sensitive to outliers, only detects linear relationships
+- Small sample sizes (n < 10-30) trigger console warnings but still compute
+
+**For production use with real statistical inference, consider validated libraries like:**
+- R with tidyverse/stats packages
+- Python scipy.stats, statsmodels, or pingouin
+- Julia Statistics.jl
+
 ## Visualization Features
 
 ### Interactive Elements
@@ -174,8 +200,24 @@ All statistical functions are available in `lib/stats.ts`.
 ### Color Schemes
 
 - Sequential: Viridis (perceptually uniform, colorblind-friendly)
-- Diverging: Red-Yellow-Green (intuitive for gap analysis)
+- Diverging: Red-Yellow-Green (intuitive but NOT colorblind-friendly - needs improvement)
 - Categorical: D3 Category10 (distinct hues for series)
+
+### Accessibility Limitations (MVP)
+
+**Current accessibility issues that need improvement:**
+- Tooltips are mouse-only (no keyboard navigation)
+- No ARIA labels or semantic HTML in D3 visualizations
+- No screen reader support for charts
+- Gap analysis uses red-green color scheme (problematic for ~8% of males with colorblindness)
+- No alternative text descriptions for visualizations
+- Focus indicators may not be visible in all contexts
+
+**Planned improvements:**
+- Keyboard navigation for all interactive elements
+- ARIA live regions for dynamic updates
+- Alternative color schemes (blue-orange diverging)
+- Text alternatives and data tables for screen readers
 
 ## Roadmap
 
