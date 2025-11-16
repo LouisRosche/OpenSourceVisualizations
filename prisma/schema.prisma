@@ -1,0 +1,146 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Organization or educational institution
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  type        String   // "corporate" | "education" | "team"
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  skills      Skill[]
+  cohorts     Cohort[]
+}
+
+// Individual user (learner, employee, student)
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  name           String
+  role           String   // "learner" | "instructor" | "admin"
+  organizationId String
+  metadata       String?  // JSON field for custom attributes
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assessments    Assessment[]
+  progress       ProgressEntry[]
+  cohortMembers  CohortMember[]
+}
+
+// Skill or competency definition
+model Skill {
+  id             String   @id @default(cuid())
+  name           String
+  category       String   // "technical" | "soft" | "domain"
+  description    String?
+  level          Int      @default(1) // difficulty level 1-5
+  prerequisites  String?  // JSON array of skill IDs
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  assessments    Assessment[]
+  goals          Goal[]
+
+  @@index([organizationId, category])
+}
+
+// Assessment/measurement of skill level
+model Assessment {
+  id          String   @id @default(cuid())
+  userId      String
+  skillId     String
+  score       Float    // 0-100 or normalized score
+  confidence  Float?   // statistical confidence
+  method      String   // "self-assessment" | "peer-review" | "test" | "observation"
+  assessorId  String?  // who conducted the assessment
+  notes       String?
+  metadata    String?  // JSON field for additional data
+  assessedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@index([userId, skillId])
+  @@index([assessedAt])
+}
+
+// Learning/development goal
+model Goal {
+  id            String   @id @default(cuid())
+  title         String
+  description   String?
+  skillId       String
+  targetLevel   Float    // target score/level
+  deadline      DateTime?
+  status        String   @default("active") // "active" | "completed" | "abandoned"
+  progress      Float    @default(0) // 0-100
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  skill         Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  progressEntries ProgressEntry[]
+}
+
+// Progress tracking entry
+model ProgressEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  goalId      String?
+  metricName  String   // what's being tracked
+  value       Float    // numeric value
+  unit        String?  // optional unit (hours, points, etc.)
+  notes       String?
+  recordedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal        Goal?    @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
+  @@index([userId, recordedAt])
+  @@index([goalId])
+}
+
+// Cohort/group for comparison
+model Cohort {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  organizationId String
+  startDate      DateTime?
+  endDate        DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        CohortMember[]
+}
+
+model CohortMember {
+  id        String   @id @default(cuid())
+  cohortId  String
+  userId    String
+  role      String   @default("member") // "member" | "facilitator"
+  joinedAt  DateTime @default(now())
+
+  cohort    Cohort   @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cohortId, userId])
+}
