@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Toaster } from 'react-hot-toast';
+import { Analytics } from '@vercel/analytics/react';
+import { validateEnv } from '@/lib/env';
 import "./globals.css";
+
+// Validate environment variables at startup
+validateEnv();
 
 export const metadata: Metadata = {
   title: "Open Source Visualizations",
@@ -40,6 +45,7 @@ export default function RootLayout({
             },
           }}
         />
+        <Analytics />
       </body>
     </html>
   );

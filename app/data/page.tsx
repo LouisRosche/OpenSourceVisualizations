@@ -2,21 +2,33 @@
 
 import { useState } from 'react';
 import { parseSkillMatrixCSV, downloadSkillMatrixTemplate, type SkillMatrixCSVRow } from '@/lib/csvImport';
+import toast from 'react-hot-toast';
 import Link from 'next/link';
+
+interface DatabaseSaveResult {
+  success: boolean;
+  usersCreated: number;
+  skillsCreated: number;
+  assessmentsCreated: number;
+  warnings?: string[];
+}
 
 export default function DataPage() {
   const [file, setFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{
     data: SkillMatrixCSVRow[];
     errors: string[];
     warnings: string[];
   } | null>(null);
+  const [dbResult, setDbResult] = useState<DatabaseSaveResult | null>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setResult(null);
+      setDbResult(null);
     }
   };
 
@@ -24,13 +36,61 @@ export default function DataPage() {
     if (!file) return;
 
     setImporting(true);
+    setDbResult(null);
+
     try {
+      // Step 1: Parse and validate CSV
       const importResult = await parseSkillMatrixCSV(file);
       setResult(importResult);
 
-      // TODO: Save to database
-      if (importResult.errors.length === 0) {
-        console.log('Successfully imported:', importResult.data.length, 'rows');
+      // Step 2: Save to database if no errors
+      if (importResult.errors.length === 0 && importResult.data.length > 0) {
+        setSaving(true);
+        const toastId = toast.loading('Saving to database...');
+
+        try {
+          const response = await fetch('/api/import', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              data: importResult.data,
+              organizationName: 'Default Organization',
+            }),
+          });
+
+          const saveResult = await response.json();
+
+          if (!response.ok) {
+            throw new Error(saveResult.error || 'Database save failed');
+          }
+
+          setDbResult({
+            success: true,
+            usersCreated: saveResult.usersCreated,
+            skillsCreated: saveResult.skillsCreated,
+            assessmentsCreated: saveResult.assessmentsCreated,
+            warnings: saveResult.warnings,
+          });
+
+          toast.success(
+            `Saved ${saveResult.assessmentsCreated} assessments for ${saveResult.usersCreated} users`,
+            { id: toastId }
+          );
+        } catch (dbError) {
+          const message = dbError instanceof Error ? dbError.message : 'Database save failed';
+          setDbResult({
+            success: false,
+            usersCreated: 0,
+            skillsCreated: 0,
+            assessmentsCreated: 0,
+            warnings: [message],
+          });
+          toast.error(`Database save failed: ${message}`, { id: toastId });
+        } finally {
+          setSaving(false);
+        }
       }
     } catch (error) {
       setResult({
@@ -38,6 +98,7 @@ export default function DataPage() {
         errors: [error instanceof Error ? error.message : 'Import failed'],
         warnings: [],
       });
+      toast.error('CSV parsing failed');
     } finally {
       setImporting(false);
     }
@@ -92,10 +153,10 @@ export default function DataPage() {
                 </span>
                 <button
                   onClick={handleImport}
-                  disabled={importing}
+                  disabled={importing || saving}
                   className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50"
                 >
-                  {importing ? 'Importing...' : 'Import Data'}
+                  {importing ? 'Parsing CSV...' : saving ? 'Saving to database...' : 'Import Data'}
                 </button>
               </div>
             )}
@@ -137,6 +198,38 @@ export default function DataPage() {
               </div>
             )}
 
+            {/* Database Save Result */}
+            {dbResult && dbResult.success && (
+              <div className="mb-4 p-4 bg-green-50 dark:bg-green-950 border border-green-500 rounded-lg">
+                <h3 className="font-semibold text-green-700 dark:text-green-300 mb-2">
+                  ✓ Successfully saved to database
+                </h3>
+                <div className="text-sm text-green-700 dark:text-green-300 space-y-1">
+                  <p>• Created {dbResult.usersCreated} users</p>
+                  <p>• Created {dbResult.skillsCreated} skills</p>
+                  <p>• Created {dbResult.assessmentsCreated} assessments</p>
+                </div>
+                {dbResult.warnings && dbResult.warnings.length > 0 && (
+                  <div className="mt-2 text-xs text-green-600 dark:text-green-400">
+                    <p>Warnings: {dbResult.warnings.join(', ')}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {dbResult && !dbResult.success && (
+              <div className="mb-4 p-4 bg-destructive/10 border border-destructive rounded-lg">
+                <h3 className="font-semibold text-destructive mb-2">
+                  Database Save Failed
+                </h3>
+                <p className="text-sm text-destructive">
+                  {dbResult.warnings && dbResult.warnings.length > 0
+                    ? dbResult.warnings.join(', ')
+                    : 'Unknown database error'}
+                </p>
+              </div>
+            )}
+
             {/* Success */}
             {result.errors.length === 0 && result.data.length > 0 && (
               <div className="p-4 bg-green-50 dark:bg-green-950 border border-green-500 rounded-lg">
@@ -144,7 +237,9 @@ export default function DataPage() {
                   ✓ Successfully imported {result.data.length} rows
                 </h3>
                 <p className="text-sm text-green-700 dark:text-green-300 mb-4">
-                  Your data is ready to visualize
+                  {dbResult?.success
+                    ? 'Data has been saved to database and is ready to visualize'
+                    : 'Data parsed successfully. Database save in progress or failed (see above).'}
                 </p>
                 <div className="flex gap-3">
                   <Link

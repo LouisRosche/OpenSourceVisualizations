@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import SkillMatrixHeatmap from '@/components/SkillMatrixHeatmap';
 import ExportButtons from '@/components/ExportButtons';
+import { NoDataEmptyState } from '@/components/EmptyState';
 import { generateSkillMatrixData } from '@/lib/sampleData';
 
 export default function SkillsPage() {
@@ -10,6 +11,16 @@ export default function SkillsPage() {
   const [showConfidence, setShowConfidence] = useState(false);
   const [colorScheme, setColorScheme] = useState<'sequential' | 'diverging'>('sequential');
   const vizRef = useRef<HTMLDivElement>(null);
+
+  // Memoize statistics calculations
+  const statistics = useMemo(() => {
+    const skillCount = data.length > 0 ? Object.keys(data[0]?.skills || {}).length : 0;
+    return {
+      userCount: data.length,
+      skillCount,
+      assessmentCount: data.length * skillCount,
+    };
+  }, [data]);
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -21,6 +32,14 @@ export default function SkillsPage() {
           </p>
         </div>
 
+        {/* Show empty state if no data */}
+        {(!data || data.length === 0) && (
+          <NoDataEmptyState />
+        )}
+
+        {/* Show visualization if data is available */}
+        {data && data.length > 0 && (
+          <>
         <div className="mb-6 flex gap-4 items-center p-4 bg-card border border-border rounded-lg">
           <div className="flex items-center gap-2">
             <input
@@ -88,23 +107,21 @@ export default function SkillsPage() {
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Users:</span>
-                <span className="font-semibold">{data.length}</span>
+                <span className="font-semibold">{statistics.userCount}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Skills:</span>
-                <span className="font-semibold">
-                  {Object.keys(data[0]?.skills || {}).length}
-                </span>
+                <span className="font-semibold">{statistics.skillCount}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Total Assessments:</span>
-                <span className="font-semibold">
-                  {data.length * Object.keys(data[0]?.skills || {}).length}
-                </span>
+                <span className="font-semibold">{statistics.assessmentCount}</span>
               </div>
             </div>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

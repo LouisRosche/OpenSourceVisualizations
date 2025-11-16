@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import GapAnalysisChart from '@/components/GapAnalysisChart';
+import { NoDataEmptyState } from '@/components/EmptyState';
 import { generateGapAnalysisData } from '@/lib/sampleData';
 import { GapAnalysis } from '@/lib/types';
 
@@ -13,13 +14,22 @@ export default function GapsPage() {
     setSelectedGap(gap);
   };
 
-  const priorityCount = {
-    high: data.filter(d => d.priority === 'high').length,
-    medium: data.filter(d => d.priority === 'medium').length,
-    low: data.filter(d => d.priority === 'low').length,
-  };
+  // Memoize priority count calculation
+  const priorityCount = useMemo(() => {
+    if (data.length === 0) return { high: 0, medium: 0, low: 0 };
 
-  const averageGap = data.reduce((sum, d) => sum + d.gap, 0) / data.length;
+    return {
+      high: data.filter(d => d.priority === 'high').length,
+      medium: data.filter(d => d.priority === 'medium').length,
+      low: data.filter(d => d.priority === 'low').length,
+    };
+  }, [data]);
+
+  // Memoize average gap calculation
+  const averageGap = useMemo(() => {
+    if (data.length === 0) return 0;
+    return data.reduce((sum, d) => sum + d.gap, 0) / data.length;
+  }, [data]);
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -30,6 +40,15 @@ export default function GapsPage() {
             Identify competency gaps and prioritize development opportunities
           </p>
         </div>
+
+        {/* Show empty state if no data */}
+        {(!data || data.length === 0) && (
+          <NoDataEmptyState />
+        )}
+
+        {/* Show visualization if data is available */}
+        {data && data.length > 0 && (
+          <>
 
         <div className="mb-6 grid gap-4 md:grid-cols-4">
           <div className="p-4 bg-card border border-border rounded-lg">
@@ -132,6 +151,8 @@ export default function GapsPage() {
             </ul>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as d3 from 'd3';
 import { SkillMatrixEntry } from '@/lib/types';
 
@@ -25,13 +25,8 @@ export default function SkillMatrixHeatmap({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [selectedCell, setSelectedCell] = useState<{ userId: string; skillId: string } | null>(null);
 
-  useEffect(() => {
-    if (!svgRef.current || !data || data.length === 0) return;
-
-    // Clear previous content
-    d3.select(svgRef.current).selectAll('*').remove();
-
-    // Extract all unique skills
+  // Memoize expensive skill extraction computation
+  const { skillIds, skillNames, allSkills } = useMemo(() => {
     const allSkills = new Map<string, string>();
     data.forEach(entry => {
       Object.entries(entry.skills).forEach(([skillId, skill]) => {
@@ -41,8 +36,18 @@ export default function SkillMatrixHeatmap({
       });
     });
 
-    const skillIds = Array.from(allSkills.keys());
-    const skillNames = Array.from(allSkills.values());
+    return {
+      allSkills,
+      skillIds: Array.from(allSkills.keys()),
+      skillNames: Array.from(allSkills.values()),
+    };
+  }, [data]);
+
+  useEffect(() => {
+    if (!svgRef.current || !data || data.length === 0) return;
+
+    // Clear previous content
+    d3.select(svgRef.current).selectAll('*').remove();
 
     // Margins and dimensions
     const margin = { top: 100, right: 50, bottom: 150, left: 200 };

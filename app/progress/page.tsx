@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import TimeSeriesChart from '@/components/TimeSeriesChart';
+import { NoDataEmptyState } from '@/components/EmptyState';
 import { generateTimeSeriesData } from '@/lib/sampleData';
 import { calculateStatistics } from '@/lib/stats';
 
@@ -10,11 +11,13 @@ export default function ProgressPage() {
   const [showConfidence, setShowConfidence] = useState(true);
   const [showTrendLine, setShowTrendLine] = useState(true);
 
-  // Calculate statistics for each series
-  const stats = series.map(s => ({
-    label: s.label,
-    ...calculateStatistics(s.data.map(d => d.value))
-  }));
+  // Memoize expensive statistics calculations
+  const stats = useMemo(() => {
+    return series.map(s => ({
+      label: s.label,
+      ...calculateStatistics(s.data.map(d => d.value))
+    }));
+  }, [series]);
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -25,6 +28,15 @@ export default function ProgressPage() {
             Time-series analysis with cohort comparisons and trend detection
           </p>
         </div>
+
+        {/* Show empty state if no data */}
+        {(!series || series.length === 0) && (
+          <NoDataEmptyState />
+        )}
+
+        {/* Show visualization if data is available */}
+        {series && series.length > 0 && (
+          <>
 
         <div className="mb-6 flex gap-4 items-center p-4 bg-card border border-border rounded-lg">
           <div className="flex items-center gap-2">
@@ -126,6 +138,8 @@ export default function ProgressPage() {
             </ul>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
