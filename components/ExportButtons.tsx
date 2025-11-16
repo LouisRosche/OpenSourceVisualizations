@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { exportToPNG, exportToSVG, exportToCSV, generateEmbedCode } from '@/lib/exportUtils';
 
 interface ExportButtonsProps {
@@ -18,46 +19,103 @@ export default function ExportButtons({
 }: ExportButtonsProps) {
   const [exporting, setExporting] = useState(false);
   const [showEmbedCode, setShowEmbedCode] = useState(false);
-  const embedCode = generateEmbedCode('demo-123', visualizationType, 1000, 600);
+
+  // Generate embed code with error handling
+  let embedCode = '';
+  try {
+    embedCode = generateEmbedCode('demo-123', visualizationType, 1000, 600);
+  } catch (error) {
+    console.error('Failed to generate embed code:', error);
+  }
 
   const handleExportPNG = async () => {
-    if (!visualizationRef.current) return;
+    if (!visualizationRef.current) {
+      toast.error('No visualization to export');
+      return;
+    }
+
     setExporting(true);
+    const toastId = toast.loading('Exporting PNG...');
+
     try {
       await exportToPNG(visualizationRef.current, `${filename}.png`);
+      toast.success('PNG exported successfully!', { id: toastId });
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export PNG');
+      const message = error instanceof Error ? error.message : 'Failed to export PNG';
+      toast.error(message, { id: toastId });
     } finally {
       setExporting(false);
     }
   };
 
   const handleExportSVG = async () => {
-    if (!visualizationRef.current) return;
+    if (!visualizationRef.current) {
+      toast.error('No visualization to export');
+      return;
+    }
+
     setExporting(true);
+    const toastId = toast.loading('Exporting SVG...');
+
     try {
       await exportToSVG(visualizationRef.current, `${filename}.svg`);
+      toast.success('SVG exported successfully!', { id: toastId });
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export SVG');
+      const message = error instanceof Error ? error.message : 'Failed to export SVG';
+      toast.error(message, { id: toastId });
     } finally {
       setExporting(false);
     }
   };
 
   const handleExportCSV = () => {
+    const toastId = toast.loading('Exporting CSV...');
+
     try {
       exportToCSV(data, `${filename}.csv`);
+      toast.success('CSV exported successfully!', { id: toastId });
     } catch (error) {
       console.error('Export failed:', error);
-      alert('Failed to export CSV');
+      const message = error instanceof Error ? error.message : 'Failed to export CSV';
+      toast.error(message, { id: toastId });
     }
   };
 
-  const copyEmbedCode = () => {
-    navigator.clipboard.writeText(embedCode);
-    alert('Embed code copied to clipboard!');
+  const copyEmbedCode = async () => {
+    if (!embedCode) {
+      toast.error('No embed code available');
+      return;
+    }
+
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(embedCode);
+        toast.success('Embed code copied to clipboard!');
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = embedCode;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.select();
+
+        try {
+          document.execCommand('copy');
+          toast.success('Embed code copied to clipboard!');
+        } catch (err) {
+          toast.error('Failed to copy. Please copy manually.');
+        } finally {
+          document.body.removeChild(textArea);
+        }
+      }
+    } catch (error) {
+      console.error('Copy failed:', error);
+      toast.error('Failed to copy to clipboard. Please copy manually.');
+    }
   };
 
   return (
