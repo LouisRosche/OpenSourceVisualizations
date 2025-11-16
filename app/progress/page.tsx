@@ -1,15 +1,62 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import TimeSeriesChart from '@/components/TimeSeriesChart';
-import { NoDataEmptyState } from '@/components/EmptyState';
+import { NoDataEmptyState, ErrorEmptyState } from '@/components/EmptyState';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { transformToTimeSeries } from '@/lib/dataTransformers';
 import { generateTimeSeriesData } from '@/lib/sampleData';
 import { calculateStatistics } from '@/lib/stats';
 
 export default function ProgressPage() {
-  const [series] = useState(() => generateTimeSeriesData(4, 24));
+  const [series, setSeries] = useState<Array<{
+    id: string;
+    label: string;
+    data: Array<{ timestamp: Date; value: number; confidence?: number }>;
+  }>>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [usingSampleData, setUsingSampleData] = useState(false);
   const [showConfidence, setShowConfidence] = useState(true);
   const [showTrendLine, setShowTrendLine] = useState(true);
+
+  // Fetch data from database on mount
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch('/api/data/fetch');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
+        }
+
+        const dbData = await response.json();
+
+        // Transform database data to time series format
+        const transformed = transformToTimeSeries(dbData);
+
+        // Check if we have time-series data
+        if (transformed.length === 0 || transformed.every(s => s.data.length < 2)) {
+          // No time-series data, use sample data
+          console.warn('No time-series data found. Using sample data for demonstration.');
+          setUsingSampleData(true);
+          setSeries(generateTimeSeriesData(4, 24));
+        } else {
+          setSeries(transformed);
+          setUsingSampleData(false);
+        }
+      } catch (err) {
+        console.error('Failed to fetch progress data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
 
   // Memoize expensive statistics calculations
   const stats = useMemo(() => {
@@ -18,6 +65,36 @@ export default function ProgressPage() {
       ...calculateStatistics(s.data.map(d => d.value))
     }));
   }, [series]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">Progress Tracking</h1>
+          <p className="text-muted-foreground mb-8">
+            Time-series analysis with cohort comparisons and trend detection
+          </p>
+          <LoadingSpinner size="lg" message="Loading progress tracking data..." />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">Progress Tracking</h1>
+          <p className="text-muted-foreground mb-8">
+            Time-series analysis with cohort comparisons and trend detection
+          </p>
+          <ErrorEmptyState message={error} />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -29,8 +106,30 @@ export default function ProgressPage() {
           </p>
         </div>
 
+        {/* Notice when using sample data */}
+        {usingSampleData && (
+          <div className="mb-6 p-4 bg-amber-50 dark:bg-amber-950 border border-amber-500 rounded-lg">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">ℹ️</span>
+              <div>
+                <h3 className="font-semibold text-amber-900 dark:text-amber-100 mb-1">
+                  Showing Sample Data
+                </h3>
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  Progress tracking requires multiple assessments over time. Your imported data contains only
+                  single assessments per user/skill. Showing sample data for demonstration purposes.
+                </p>
+                <p className="text-sm text-amber-800 dark:text-amber-200 mt-2">
+                  <strong>To see real progress data:</strong> Re-import the same CSV file at different times
+                  or add a "date" column to your CSV with different assessment dates.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Show empty state if no data */}
-        {(!series || series.length === 0) && (
+        {(!series || series.length === 0) && !usingSampleData && (
           <NoDataEmptyState />
         )}
 

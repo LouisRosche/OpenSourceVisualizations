@@ -69,14 +69,16 @@ Identify and prioritize competency development opportunities.
 
 ## Technology Stack
 
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
+- **Framework**: Next.js 16 (App Router)
+- **Language**: TypeScript (strict mode)
 - **Styling**: Tailwind CSS
-- **Visualizations**: D3.js
+- **Visualizations**: D3.js (custom visualizations)
 - **Database**: Prisma ORM with PostgreSQL
 - **Deployment**: Vercel-ready (see DEPLOYMENT.md)
-- **Data Import**: CSV parsing with validation (PapaParse)
+- **Data Import**: CSV parsing with validation & sanitization (PapaParse)
 - **Export**: PNG, SVG, CSV (html-to-image, file-saver)
+- **Monitoring**: Sentry error tracking, Vercel Analytics
+- **Notifications**: Toast notifications (react-hot-toast)
 
 ## Getting Started
 
@@ -126,10 +128,15 @@ This application is production-ready and optimized for Vercel deployment.
 
 ### Key Features for Production
 
-- ✅ CSV data import with validation
+- ✅ CSV data import with comprehensive validation & sanitization
+- ✅ Database persistence with PostgreSQL
 - ✅ Export to PNG, SVG, CSV
 - ✅ Embed code generation
-- ✅ PostgreSQL database support
+- ✅ Error tracking with Sentry
+- ✅ Analytics with Vercel Analytics
+- ✅ Toast notifications for better UX
+- ✅ Loading states and empty states
+- ✅ Performance optimizations (useMemo)
 - ✅ Serverless-ready architecture
 - ✅ Type-safe APIs with Prisma
 
@@ -172,16 +179,21 @@ This application is production-ready and optimized for Vercel deployment.
 
 See `prisma/schema.prisma` for complete data model.
 
-### Data Validation Limitations (MVP)
+### Data Validation & Security
 
-**Current MVP does not include:**
-- Runtime data validation (no Zod or similar)
-- Score range constraints (could accept values < 0 or > 100)
-- Database constraints beyond basic types
-- Input sanitization for user-provided data
-- Error boundaries for visualization failures
+**Implemented security measures:**
+- ✅ CSV injection protection (sanitizes formula characters: =, +, -, @)
+- ✅ XSS prevention (URL validation, input sanitization)
+- ✅ File size limits (10MB max)
+- ✅ Row limits (10,000 rows max to prevent memory exhaustion)
+- ✅ MIME type validation
+- ✅ Error boundaries for graceful failure handling
+- ✅ Database transaction safety
 
-**All current data is generated via sample data generators** - no real data import yet.
+**Current limitations:**
+- No runtime schema validation (no Zod/Yup)
+- Score range validated in CSV but not enforced in DB schema
+- No rate limiting on API endpoints (recommended for production)
 
 ## Statistical Methods
 
@@ -249,28 +261,38 @@ Key limitations:
 
 ## Roadmap
 
-### MVP (Current Phase)
-- [x] Core visualization components
-- [x] Statistical calculation library
-- [x] Database schema and models
-- [x] Sample data generators
-- [ ] CSV data import
-- [ ] Export functionality (SVG, PNG, CSV)
-- [ ] Embed system
+### ✅ Phase 1: MVP (COMPLETE)
+- [x] Core visualization components (Skill Matrix, Time Series, Gap Analysis)
+- [x] Statistical calculation library with documented assumptions
+- [x] Database schema and models (Prisma + PostgreSQL)
+- [x] CSV data import with validation & sanitization
+- [x] Database persistence with automatic upsert
+- [x] Data transformation layer (DB → visualizations)
+- [x] Export functionality (SVG, PNG, CSV)
+- [x] Embed code generation
+- [x] Error tracking (Sentry)
+- [x] Analytics (Vercel)
+- [x] Toast notifications
+- [x] Loading & empty states
+- [x] Performance optimizations
 
-### Phase 2
-- [ ] Real-time collaboration
+### Phase 2 (Next Steps)
+- [ ] Authentication and authorization (NextAuth)
+- [ ] User roles and permissions
 - [ ] Advanced filtering and querying
 - [ ] Custom dashboard builder
-- [ ] API endpoints for integrations
-- [ ] Authentication and authorization
+- [ ] Public API endpoints for integrations
+- [ ] Rate limiting
+- [ ] Real-time collaboration
 
-### Phase 3
-- [ ] AI-powered insights
+### Phase 3 (Future)
+- [ ] AI-powered insights and recommendations
 - [ ] Predictive analytics
 - [ ] Mobile responsive design
-- [ ] Multi-language support
+- [ ] Multi-language support (i18n)
 - [ ] Advanced export formats (interactive HTML, video)
+- [ ] Accessibility improvements (WCAG AA compliance)
+- [ ] Alternative color schemes for colorblind users
 
 ## Contributing
 

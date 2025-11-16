@@ -1,20 +1,10 @@
 /**
  * Database service for persisting imported data
- * Note: Requires Prisma client to be generated first (npx prisma generate)
  */
 
+import prisma from './db';
+import { Prisma } from '@prisma/client';
 import { SkillMatrixCSVRow } from './csvImport';
-
-// Conditional Prisma import for build compatibility
-let prisma: any = null;
-let Prisma: any = null;
-
-try {
-  prisma = require('./db').default;
-  Prisma = require('@prisma/client').Prisma;
-} catch (error) {
-  console.warn('Prisma client not available. Database operations will not work.');
-}
 
 export interface ImportResult {
   success: boolean;
@@ -34,20 +24,9 @@ export async function saveCSVImport(
 ): Promise<ImportResult> {
   const errors: string[] = [];
 
-  // Check if Prisma is available
-  if (!prisma) {
-    return {
-      success: false,
-      usersCreated: 0,
-      skillsCreated: 0,
-      assessmentsCreated: 0,
-      errors: ['Database not configured. Please run "npx prisma generate" and configure DATABASE_URL.'],
-    };
-  }
-
   try {
     // Start a transaction
-    const result = await prisma.$transaction(async (tx: any) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // 1. Get or create organization
       let organization = await tx.organization.findFirst({
         where: { name: organizationName },
@@ -172,10 +151,6 @@ export async function saveCSVImport(
  * Fetch all imported data for visualization
  */
 export async function fetchImportedData(organizationName: string = 'Default Organization') {
-  if (!prisma) {
-    throw new Error('Database not configured. Please run "npx prisma generate" and configure DATABASE_URL.');
-  }
-
   try {
     const organization = await prisma.organization.findFirst({
       where: { name: organizationName },

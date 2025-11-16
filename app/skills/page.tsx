@@ -1,16 +1,54 @@
 'use client';
 
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import SkillMatrixHeatmap from '@/components/SkillMatrixHeatmap';
 import ExportButtons from '@/components/ExportButtons';
-import { NoDataEmptyState } from '@/components/EmptyState';
-import { generateSkillMatrixData } from '@/lib/sampleData';
+import { NoDataEmptyState, ErrorEmptyState } from '@/components/EmptyState';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { transformToSkillMatrix, validateDataQuality } from '@/lib/dataTransformers';
+import { SkillMatrixEntry } from '@/lib/types';
 
 export default function SkillsPage() {
-  const [data] = useState(() => generateSkillMatrixData(15, 10));
+  const [data, setData] = useState<SkillMatrixEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showConfidence, setShowConfidence] = useState(false);
   const [colorScheme, setColorScheme] = useState<'sequential' | 'diverging'>('sequential');
   const vizRef = useRef<HTMLDivElement>(null);
+
+  // Fetch data from database on mount
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch('/api/data/fetch');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
+        }
+
+        const dbData = await response.json();
+
+        // Transform database data to visualization format
+        const transformed = transformToSkillMatrix(dbData);
+        setData(transformed);
+
+        // Validate data quality
+        const validation = validateDataQuality(dbData);
+        if (validation.warnings.length > 0) {
+          console.warn('Data quality warnings:', validation.warnings);
+        }
+      } catch (err) {
+        console.error('Failed to fetch skill matrix data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
 
   // Memoize statistics calculations
   const statistics = useMemo(() => {
@@ -22,6 +60,51 @@ export default function SkillsPage() {
     };
   }, [data]);
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">Skill Matrix Heat Map</h1>
+          <p className="text-muted-foreground mb-8">
+            Comprehensive visualization of competency levels across users and skills
+          </p>
+          <LoadingSpinner size="lg" message="Loading skill matrix data..." />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">Skill Matrix Heat Map</h1>
+          <p className="text-muted-foreground mb-8">
+            Comprehensive visualization of competency levels across users and skills
+          </p>
+          <ErrorEmptyState message={error} />
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!data || data.length === 0) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">Skill Matrix Heat Map</h1>
+          <p className="text-muted-foreground mb-8">
+            Comprehensive visualization of competency levels across users and skills
+          </p>
+          <NoDataEmptyState />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto">
@@ -32,14 +115,6 @@ export default function SkillsPage() {
           </p>
         </div>
 
-        {/* Show empty state if no data */}
-        {(!data || data.length === 0) && (
-          <NoDataEmptyState />
-        )}
-
-        {/* Show visualization if data is available */}
-        {data && data.length > 0 && (
-          <>
         <div className="mb-6 flex gap-4 items-center p-4 bg-card border border-border rounded-lg">
           <div className="flex items-center gap-2">
             <input
@@ -120,8 +195,6 @@ export default function SkillsPage() {
             </div>
           </div>
         </div>
-          </>
-        )}
       </div>
     </div>
   );

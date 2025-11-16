@@ -1,35 +1,110 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import GapAnalysisChart from '@/components/GapAnalysisChart';
-import { NoDataEmptyState } from '@/components/EmptyState';
-import { generateGapAnalysisData } from '@/lib/sampleData';
+import { NoDataEmptyState, ErrorEmptyState } from '@/components/EmptyState';
+import LoadingSpinner from '@/components/LoadingSpinner';
+import { transformToGapAnalysis, validateDataQuality } from '@/lib/dataTransformers';
 import { GapAnalysis } from '@/lib/types';
 
 export default function GapsPage() {
-  const [data] = useState(() => generateGapAnalysisData(12));
+  const [data, setData] = useState<GapAnalysis[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedGap, setSelectedGap] = useState<GapAnalysis | null>(null);
+
+  // Fetch data from database on mount
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch('/api/data/fetch');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch data: ${response.statusText}`);
+        }
+
+        const dbData = await response.json();
+
+        // Transform database data to gap analysis format
+        const transformed = transformToGapAnalysis(dbData);
+        setData(transformed);
+
+        // Validate data quality
+        const validation = validateDataQuality(dbData);
+        if (validation.warnings.length > 0) {
+          console.warn('Data quality warnings:', validation.warnings);
+        }
+      } catch (err) {
+        console.error('Failed to fetch gap analysis data:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
 
   const handleGapClick = (gap: GapAnalysis) => {
     setSelectedGap(gap);
   };
 
-  // Memoize priority count calculation
-  const priorityCount = useMemo(() => {
-    if (data.length === 0) return { high: 0, medium: 0, low: 0 };
+  const priorityCount = {
+    high: data.filter(d => d.priority === 'high').length,
+    medium: data.filter(d => d.priority === 'medium').length,
+    low: data.filter(d => d.priority === 'low').length,
+  };
 
-    return {
-      high: data.filter(d => d.priority === 'high').length,
-      medium: data.filter(d => d.priority === 'medium').length,
-      low: data.filter(d => d.priority === 'low').length,
-    };
-  }, [data]);
+  const averageGap = data.length > 0
+    ? data.reduce((sum, d) => sum + d.gap, 0) / data.length
+    : 0;
 
-  // Memoize average gap calculation
-  const averageGap = useMemo(() => {
-    if (data.length === 0) return 0;
-    return data.reduce((sum, d) => sum + d.gap, 0) / data.length;
-  }, [data]);
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">Gap Analysis Dashboard</h1>
+          <p className="text-muted-foreground mb-8">
+            Identify competency gaps and prioritize development opportunities
+          </p>
+          <LoadingSpinner size="lg" message="Loading gap analysis..." />
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">Gap Analysis Dashboard</h1>
+          <p className="text-muted-foreground mb-8">
+            Identify competency gaps and prioritize development opportunities
+          </p>
+          <ErrorEmptyState message={error} />
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state
+  if (!data || data.length === 0) {
+    return (
+      <div className="min-h-screen bg-background p-8">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-4xl font-bold mb-2">Gap Analysis Dashboard</h1>
+          <p className="text-muted-foreground mb-8">
+            Identify competency gaps and prioritize development opportunities
+          </p>
+          <NoDataEmptyState />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background p-8">
