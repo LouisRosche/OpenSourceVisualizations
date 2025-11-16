@@ -62,6 +62,18 @@ export default function Home() {
             </Link>
 
             <Link
+              href="/insights"
+              className="group p-6 bg-card border border-primary rounded-lg hover:shadow-lg transition-shadow"
+            >
+              <h3 className="text-xl font-semibold mb-2 group-hover:text-primary">
+                📊 Comparative Insights
+              </h3>
+              <p className="text-muted-foreground">
+                Compare against national benchmarks (NCES, IPEDS, EDFacts)
+              </p>
+            </Link>
+
+            <Link
               href="/data"
               className="group p-6 bg-card border border-border rounded-lg hover:shadow-lg transition-shadow"
             >

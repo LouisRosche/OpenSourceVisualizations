@@ -67,6 +67,31 @@ Identify and prioritize competency development opportunities.
 - Career pathway planning
 - Performance review preparation
 
+### 4. Comparative Insights & National Benchmarking
+**NEW**: Compare your assessment data against national educational benchmarks from the U.S. Department of Education.
+
+**Features:**
+- Integration with NCES (National Center for Education Statistics)
+- IPEDS data (6,400+ postsecondary institutions)
+- EDFacts K-12 performance data
+- Common Core of Data (CCD) school metrics
+- Automated percentile ranking
+- AI-generated actionable recommendations
+- State and national comparisons
+
+**Data Sources:**
+- Urban Institute Education Data Portal API
+- Department of Education Open Data Platform
+- NCES EDGE Open Data APIs
+
+**Use Cases:**
+- Benchmark against national averages
+- Identify strengths and weaknesses relative to peers
+- Data-driven strategic planning
+- Stakeholder reporting with credible comparisons
+- Evidence-based resource allocation
+- Program effectiveness evaluation
+
 ## Technology Stack
 
 - **Framework**: Next.js 16 (App Router)
@@ -275,6 +300,9 @@ Key limitations:
 - [x] Toast notifications
 - [x] Loading & empty states
 - [x] Performance optimizations
+- [x] **External data integration** (NCES, IPEDS, EDFacts)
+- [x] **National benchmarking system**
+- [x] **AI-powered comparative insights**
 
 ### Phase 2 (Next Steps)
 - [ ] Authentication and authorization (NextAuth)
